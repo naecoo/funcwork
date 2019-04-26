@@ -1,4 +1,4 @@
-function funcworker (options = {}) {
+function funcwork (options = {}) {
   if (!Worker) {
     throw new Error('the current runtime does not support web worker')
   }
@@ -89,4 +89,4 @@ function funcworker (options = {}) {
   }
 }
 
-export default funcworker
+export default funcwork
