@@ -9,7 +9,7 @@ const config = {
   }, {
     file: 'dist/funcwork.umd.js',
     format: 'umd',
-    name: 'funcworker'
+    name: 'funcwork'
   }],
   plugins: [
     babel({
