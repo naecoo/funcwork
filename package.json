@@ -1,0 +1,25 @@
+{
+  "name": "funcwork",
+  "version": "1.0.0",
+  "description": "run javascript pure function in web worker",
+  "main": "./src/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/naecoo/funcwork.git"
+  },
+  "keywords": [
+    "web",
+    "worker",
+    "javascript",
+    "function"
+  ],
+  "author": "naecoo",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/naecoo/funcwork/issues"
+  },
+  "homepage": "https://github.com/naecoo/funcwork#readme"
+}
