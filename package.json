@@ -2,9 +2,10 @@
   "name": "funcwork",
   "version": "1.0.0",
   "description": "run javascript pure function in web worker",
-  "main": "./src/index.js",
+  "main": "dist/funcworker.umd.js",
+  "module": "dist/funcworker.es.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "rollup -c"
   },
   "repository": {
     "type": "git",
@@ -19,5 +20,16 @@
   "bugs": {
     "url": "https://github.com/naecoo/funcwork/issues"
   },
-  "homepage": "https://github.com/naecoo/funcwork#readme"
+  "homepage": "https://github.com/naecoo/funcwork#readme",
+  "devDependencies": {
+    "@babel/core": "^7.4.3",
+    "@babel/code-frame": "^7.0.0",
+    "babel-plugin-external-helpers": "^6.22.0",
+    "babel-preset-env": "^1.7.0",
+    "rollup": "^1.10.1",
+    "rollup-plugin-babel": "^3.0.7",
+    "rollup-plugin-terser": "^4.0.4",
+    "jest-worker": "^24.6.0",
+    "terser": "^3.17.0"
+  }
 }
