@@ -11,10 +11,8 @@
     "url": "git+https://github.com/naecoo/funcwork.git"
   },
   "keywords": [
-    "web",
-    "worker",
-    "javascript",
-    "function"
+    "web worker",
+    "javascript"
   ],
   "author": "naecoo",
   "license": "MIT",
