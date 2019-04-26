@@ -1,5 +1,12 @@
 function funcworker (options = {}) {
-  let _worker, url
+  if (!Worker) {
+    throw new Error('the current runtime does not support web worker')
+  }
+  if (!Promise) {
+    throw new Error('the current runtime does not support Promise')
+  }
+
+  let _worker, _url
 
   const _methods = new Map()
 
@@ -10,7 +17,20 @@ function funcworker (options = {}) {
   const worker_scheduler = `
     self.onmessage = function (e) {
       const { method, params = [] } = JSON.parse(e.data)
-      self.postMessage(JSON.stringify(methods[method].apply(null, params)))
+      try {
+        const result = methods[method].apply(null, params)
+        if (result instanceof Promise) {
+          Promise.resolve(result).then(res => {
+            self.postMessage(JSON.stringify(res))
+          }).catch(e => {
+            throw new Error(e)
+          })
+        } else {
+          self.postMessage(JSON.stringify(result))
+        }
+      } catch (e) {
+        throw new Error(e)
+      }
     } 
   `
 
@@ -29,8 +49,8 @@ function funcworker (options = {}) {
     }
     const wrapper = `const methods = {${code}}` + `\n${worker_scheduler}`
     
-    url = URL.createObjectURL(new Blob([wrapper]))
-    _worker = new Worker(url, options)
+    _url = URL.createObjectURL(new Blob([wrapper]))
+    _worker = new Worker(_url, options)
 
   }
 
@@ -40,7 +60,8 @@ function funcworker (options = {}) {
     }
     return new Promise((resolve, reject) => {
       _worker.onmessage = (e) => {
-        resolve(JSON.parse(e.data))
+        const data = JSON.parse(e.data)
+        resolve(data)
       }
       _worker.onerror = (e) => {
         reject(e.message)
@@ -57,10 +78,8 @@ function funcworker (options = {}) {
       _worker.terminate()
       _worker = null
     }
-    URL.revokeObjectURL(url)
+    URL.revokeObjectURL(_url)
     _methods.clear()
-    add = null
-    invoke = null
   }
 
   return {
