@@ -1,6 +1,6 @@
 {
   "name": "funcwork",
-  "version": "1.1.2",
+  "version": "1.2.0",
   "description": "run javascript pure function in web worker",
   "main": "dist/funcworker.umd.js",
   "module": "dist/funcworker.es.js",
