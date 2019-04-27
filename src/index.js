@@ -1,3 +1,4 @@
+'use strict'
 function funcwork (options = {}) {
   if (!Worker) {
     throw new Error('the current runtime does not support web worker')
@@ -10,32 +11,6 @@ function funcwork (options = {}) {
 
   const _methods = new Map()
 
-  const _getFnName = (func) => func.name
-
-  const _fnToStr = Function.prototype.toString
-
-  const worker_scheduler = `
-    self.onmessage = function (e) {
-      var data = JSON.parse(e.data)
-      var method = data.method
-      var params = data.params || []
-      try {
-        var result = methods[method].apply(null, params)
-        if (result instanceof Promise) {
-          Promise.resolve(result).then(res => {
-            self.postMessage(JSON.stringify(res))
-          }).catch(e => {
-            throw new Error(e)
-          })
-        } else {
-          self.postMessage(JSON.stringify(result))
-        }
-      } catch (e) {
-        throw new Error(e)
-      }
-    } 
-  `
-
   function add (...methods) {
     methods.forEach(method => {
       if (typeof method !== 'function') {
@@ -47,10 +22,16 @@ function funcwork (options = {}) {
     
     let code = ''
     for (const [name, func] of _methods.entries()) {
-      code += `${name}: ${_fnToStr.call(func)},`
+      let str = ''
+      if (isArrowFunc(func)) {
+        str = `;var ${name} = ${_fnToStr.call(func)}`
+      } else {
+        str = `;${_fnToStr.call(func)}`
+      }
+      code += str
     }
-    const wrapper = `var methods = {${code}};\n%{worker_scheduler}`
-    
+
+    const wrapper = `${code};\n${worker_scheduler}`
     _url = URL.createObjectURL(new Blob([wrapper]))
     _worker = new Worker(_url, options)
 
@@ -90,5 +71,49 @@ function funcwork (options = {}) {
     terminate
   }
 }
+
+const worker_scheduler = `
+    self.onmessage = function (e) {
+      var data = JSON.parse(e.data)
+      var method = data.method
+      var params = data.params || []
+      try {
+        var result = self[method].apply(null, params)
+        if (result instanceof Promise) {
+          Promise.resolve(result).then(res => {
+            self.postMessage(JSON.stringify(res))
+          }).catch(e => {
+            throw new Error(e)
+          })
+        } else {
+          self.postMessage(JSON.stringify(result))
+        }
+      } catch (e) {
+        throw new Error(e)
+      }
+    } 
+  `
+
+const isArrowFunc = (fn) => {
+  if (typeof fn === 'function' && fn !== null) {
+    if (fn.prototype && fn.prototype.constructor === fn) {
+      return false
+    }
+    if (Function.prototype.toString.call(fn).indexOf('function') !== 0) {
+      return true
+    }
+    try {
+      new fn()
+      return false
+    } catch (e) {
+      return true
+    }
+  }
+  return false
+}
+
+const _getFnName = (func) => func.name
+
+const _fnToStr = Function.prototype.toString
 
 export default funcwork
