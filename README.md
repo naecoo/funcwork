@@ -49,6 +49,6 @@ await invoke('requestInfo', ['api/getUserInfo', 'xxx123456']) //  user info...
 ### 注意事项
 
 1. add方法传入的函数不能是匿名函数
-2. 函数之间不能互相调用，即函数内部不能调用别的函数（下一步可能会优化）
+2. 函数内部可以调用其他函数，但调用的函数必须提前加到worker内部
 3. 函数内部不能访问worker访问不到的对象，比如window,location等等
 4. invoke返回值是promise
