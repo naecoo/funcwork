@@ -16,9 +16,11 @@ function funcwork (options = {}) {
 
   const worker_scheduler = `
     self.onmessage = function (e) {
-      const { method, params = [] } = JSON.parse(e.data)
+      var data = JSON.parse(e.data)
+      var method = data.method
+      var params = data.params || []
       try {
-        const result = methods[method].apply(null, params)
+        var result = methods[method].apply(null, params)
         if (result instanceof Promise) {
           Promise.resolve(result).then(res => {
             self.postMessage(JSON.stringify(res))
@@ -47,7 +49,7 @@ function funcwork (options = {}) {
     for (const [name, func] of _methods.entries()) {
       code += `${name}: ${_fnToStr.call(func)},`
     }
-    const wrapper = `const methods = {${code}}` + `\n${worker_scheduler}`
+    const wrapper = `var methods = {${code}};\n%{worker_scheduler}`
     
     _url = URL.createObjectURL(new Blob([wrapper]))
     _worker = new Worker(_url, options)
