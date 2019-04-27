@@ -78,7 +78,7 @@ const worker_scheduler = `
       var method = data.method
       var params = data.params || []
       try {
-        var result = self[method].apply(null, params)
+        var result = self[method].apply(null, params) || null
         if (result instanceof Promise) {
           Promise.resolve(result).then(res => {
             self.postMessage(JSON.stringify(res))

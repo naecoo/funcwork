@@ -2,8 +2,8 @@
   "name": "funcwork",
   "version": "1.2.2",
   "description": "run javascript pure function in web worker",
-  "main": "dist/funcworker.umd.js",
-  "module": "dist/funcworker.es.js",
+  "main": "./dist/funcwork.umd.js",
+  "module": "./dist/funcwork.es.js",
   "scripts": {
     "build": "rollup -c"
   },
