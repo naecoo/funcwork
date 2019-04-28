@@ -19,7 +19,7 @@ function funcwork (options = {}) {
       const name = _getFnName(method)
       _methods.set(name, method)
     })
-    
+    URL.revokeObjectURL(_url)
     let code = ''
     for (const [name, func] of _methods.entries()) {
       let str = ''
