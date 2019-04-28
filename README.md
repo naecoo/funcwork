@@ -27,9 +27,9 @@ async function requestInfo (url, id) {
 
 add(sayName, sayHi)
 
-await invoke('sayName', ['naeco'])    						  // Hello naeco!
-await invoke('sayHi')                 						  // Hi!
-await invoke('requestInfo', ['api/getUserInfo', 'xxx123456']) //  user info...
+await invoke('sayName', ['naeco'])  // Hello naeco!
+await invoke('sayHi') // Hi!
+await invoke('requestInfo', ['api/getUserInfo', 'xxx123456']) //user info...
 ```
 
 ### 参数
