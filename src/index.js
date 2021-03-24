@@ -1,17 +1,17 @@
 'use strict'
-function funcwork (options = {}) {
+export default function funcwork(options = {}) {
   if (!Worker) {
-    throw new Error('the current runtime does not support web worker')
+    throw new Error('The current runtime does not support web worker.')
   }
   if (!Promise) {
-    throw new Error('the current runtime does not support Promise')
+    throw new Error('The current runtime does not support Promise.')
   }
 
   let _worker, _url
 
   const _methods = new Map()
 
-  function add (...methods) {
+  function add(...methods) {
     methods.forEach(method => {
       if (typeof method !== 'function') {
         throw new Error(`${method} should be a function`)
@@ -37,7 +37,7 @@ function funcwork (options = {}) {
 
   }
 
-  function invoke (method = '', params = []) {
+  function invoke(method = '', params = []) {
     if (!_methods.has(method)) {
       throw new Error(`${method} is not defined`)
     }
@@ -56,7 +56,7 @@ function funcwork (options = {}) {
     })
   }
 
-  function terminate () {
+  function terminate() {
     if (_worker) {
       _worker.terminate()
       _worker = null
@@ -95,19 +95,18 @@ const worker_scheduler = `
   `
 
 const isArrowFunc = (fn) => {
-  if (typeof fn === 'function' && fn !== null) {
-    if (fn.prototype && fn.prototype.constructor === fn) {
-      return false
-    }
-    if (Function.prototype.toString.call(fn).indexOf('function') !== 0) {
-      return true
-    }
-    try {
-      new fn()
-      return false
-    } catch (e) {
-      return true
-    }
+  if (typeof fn !== 'function') return false
+  if (fn.prototype && fn.prototype.constructor === fn) {
+    return false
+  }
+  if (Function.prototype.toString.call(fn).indexOf('function') !== 0) {
+    return true
+  }
+  try {
+    new fn()
+    return false
+  } catch (e) {
+    return true
   }
   return false
 }
@@ -115,5 +114,3 @@ const isArrowFunc = (fn) => {
 const _getFnName = (func) => func.name
 
 const _fnToStr = Function.prototype.toString
-
-export default funcwork

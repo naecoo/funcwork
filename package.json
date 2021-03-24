@@ -1,35 +1,30 @@
 {
   "name": "funcwork",
   "version": "1.2.3",
-  "description": "run javascript pure function in web worker",
-  "main": "./dist/funcwork.umd.js",
-  "module": "./dist/funcwork.es.js",
+  "description": "Run pure function in web worker",
+  "main": "dist/funcwork.js",
+  "module": "dist/funcwork.esm.js",
+  "types": "index.d.ts",
   "scripts": {
-    "build": "rollup -c"
+    "build": "node ./build.js",
+    "prepublish": "npm run build"
   },
+  "keywords": [
+    "web worker",
+    "javascript",
+    "function"
+  ],
+  "author": "naecoo",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/naecoo/funcwork.git"
   },
-  "keywords": [
-    "web worker",
-    "javascript"
-  ],
-  "author": "naecoo",
-  "license": "MIT",
   "bugs": {
     "url": "https://github.com/naecoo/funcwork/issues"
   },
   "homepage": "https://github.com/naecoo/funcwork#readme",
   "devDependencies": {
-    "@babel/core": "^7.4.3",
-    "@babel/code-frame": "^7.0.0",
-    "babel-plugin-external-helpers": "^6.22.0",
-    "babel-preset-env": "^1.7.0",
-    "rollup": "^1.10.1",
-    "rollup-plugin-babel": "^3.0.7",
-    "rollup-plugin-terser": "^4.0.4",
-    "jest-worker": "^24.6.0",
-    "terser": "^3.17.0"
+    "esbuild": "^0.9.6"
   }
 }
