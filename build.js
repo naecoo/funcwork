@@ -10,11 +10,15 @@ module.exports = Object.keys(formats).map(format => {
   const fileName = formats[format]
   build({
     format,
-    entryPoints: [path.resolve(__dirname, './src/index.js')],
+    entryPoints: [path.resolve(__dirname, './src/index.ts')],
     outfile: path.resolve(__dirname, './dist/', fileName),
     bundle: true,
     minify: true,
-    platform: 'browser'
+    platform: 'browser',
+    loader: {
+      '.ts': 'ts'
+    },
+    tsconfig: path.resolve(__dirname, './tsconfig.json')
   }).then(() => {
     console.info(`— ${fileName} was built`)
   }).catch((e) => {
