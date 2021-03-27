@@ -1,5 +1,6 @@
 # funcwork
 run javascript function in web worker
+zero depen
 
 
 ### 安装

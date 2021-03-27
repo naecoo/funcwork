@@ -9,34 +9,16 @@ export class FuncWork {
   private genCodeString(): string {
     let code = '';
     for (const [name, method] of this.methodMap.entries()) {
-      let str = ''
+      let str = '';
       const funcCode = Function.prototype.toString.call(method);
       if (isArrowFunction(method)) {
-        str = `;var ${name} = ${funcCode}`
+        str = `;var ${name} = ${funcCode}`;
       } else {
-        str = `;${funcCode}`
+        str = `;${funcCode}`;
       }
+      code = `${code}${str}`;
     }
-    return `${code};\n
-      ;self.onmessage = function (e) {
-        var data = JSON.parse(e.data)
-        var method = data.method;
-        var params = data.params || [];
-        try {
-          var result = self[method].apply(null, params) || null;
-          if (result instanceof Promise) {
-            Promise.resolve(result).then(res => {
-              self.postMessage(JSON.stringify(res));
-            }).catch(e => {
-              throw new Error(e);
-            })
-          } else {
-            self.postMessage(JSON.stringify(result));
-          }
-        } catch (e) {
-          throw new Error(e);
-        }
-      };`;
+    return `${code};self.onmessage=function(e){var data=JSON.parse(e.data);var method=data.method;var params=data.params;try{var result=self[method].call(null,params)||null;if(result instanceof Promise){Promise.resolve(result).then(res=>{self.postMessage(JSON.stringify(res))}).catch(e=>{throw new Error(e)})}else{self.postMessage(JSON.stringify(result))}}catch(e){throw new Error(e)}};`;
   }
 
   constructor(options?: WorkerOptions) {
@@ -65,8 +47,7 @@ export class FuncWork {
     });
     this.terminate();
     const code = this.genCodeString();
-    // @ts-ignore
-    this.scriptUrl = URL.createObjectURL(new Blob[code]);
+    this.scriptUrl = URL.createObjectURL(new Blob([code]));
     this.worker = new Worker(this.scriptUrl, this.options);
 
     return this;
@@ -106,7 +87,7 @@ export class FuncWork {
         reject(e);
       });
       this.worker?.postMessage(JSON.stringify({
-        name,
+        method: name,
         params
       }))
     });

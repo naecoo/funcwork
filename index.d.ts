@@ -31,6 +31,7 @@ export class FuncWork {
 
   /** 
    * invoke function that was registered before
+   * @param name
    */
   invoke(name: string, params: any): never | Promise<any>
 

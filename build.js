@@ -3,17 +3,20 @@ const { build } = require('esbuild');
 
 const formats = {
   'esm': 'index.esm.js',
-  'cjs': 'index.js'
+  'cjs': 'index.js',
+  'iife': 'index.iife.js'
 }
 
 module.exports = Object.keys(formats).map(format => {
   const fileName = formats[format]
   build({
     format,
+    globalName: 'funcWork',
     entryPoints: [path.resolve(__dirname, './src/index.ts')],
     outfile: path.resolve(__dirname, './dist/', fileName),
     bundle: true,
     minify: true,
+    sourcemap: true,
     platform: 'browser',
     loader: {
       '.ts': 'ts'
