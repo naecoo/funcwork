@@ -2,7 +2,8 @@ import { isFunction, isArrowFunction } from './utils';
 
 export class FuncWork {
   private options?: WorkerOptions;
-  private worker?: Worker;
+  // @ts-ignore
+  private worker: Worker;
   private scriptUrl: string;
   private methodMap: Map<string, Function>;
   
@@ -76,17 +77,17 @@ export class FuncWork {
       throw new Error(`${name} is not defined in Funcwork.`);
     }
     return new Promise((resolve, reject) => {
-      this.worker?.addEventListener('message', (e) => {
+      this.worker.addEventListener('message', (e) => {
         try {
           resolve(JSON.parse(e.data))
         } catch (e) {
           reject(e);
         }
       });
-      this.worker?.addEventListener('error', (e) => {
+      this.worker.addEventListener('error', (e) => {
         reject(e);
       });
-      this.worker?.postMessage(JSON.stringify({
+      this.worker.postMessage(JSON.stringify({
         method: name,
         params
       }))

@@ -2,8 +2,8 @@ const path = require('path');
 const { build } = require('esbuild');
 
 const formats = {
-  'esm': 'index.esm.js',
   'cjs': 'index.js',
+  'esm': 'index.esm.js',
   'iife': 'index.iife.js'
 }
 
