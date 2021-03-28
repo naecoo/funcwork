@@ -1,6 +1,6 @@
 {
   "name": "funcwork",
-  "version": "1.2.5",
+  "version": "2.0.0-alpha.0",
   "description": "Run pure function in web worker",
   "main": "dist/funcwork.js",
   "module": "dist/funcwork.esm.js",
