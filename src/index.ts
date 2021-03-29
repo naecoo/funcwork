@@ -1,5 +1,7 @@
 import { isFunction, isArrowFunction } from './utils';
 
+
+type Message = 'init' | 'add' | 'remove' | 'clear'; 
 export class FuncWork {
   private options?: WorkerOptions;
   // @ts-ignore
@@ -19,8 +21,18 @@ export class FuncWork {
       }
       code = `${code}${str}`;
     }
-    return `${code};self.onmessage=function(e){var data=JSON.parse(e.data);var method=data.method;var params=data.params;try{var result=self[method].call(null,params)||null;if(result instanceof Promise){Promise.resolve(result).then(res=>{self.postMessage(JSON.stringify(res))}).catch(e=>{throw new Error(e)})}else{self.postMessage(JSON.stringify(result))}}catch(e){throw new Error(e)}};`;
+    return `${code};self.onmessage=function(e){var data=JSON.parse(e.data);var method=data.method;var params=data.params;try{var result=self[method].apply(null,params)||null;if(result instanceof Promise){Promise.resolve(result).then(res=>{self.postMessage(JSON.stringify(res))}).catch(e=>{throw new Error(e)})}else{self.postMessage(JSON.stringify(result))}}catch(e){throw new Error(e)}};`;
   }
+
+  private replaceWorker() {
+    // todo: 初始化生成url和worker，维护一套消息机制，没必要重复生成
+    this.terminate();
+    const code = this.genCodeString();
+    this.scriptUrl = URL.createObjectURL(new Blob([code]));
+    this.worker = new Worker(this.scriptUrl, this.options);
+  }
+
+  private update(type: Message) {}
 
   constructor(options?: WorkerOptions) {
     // todo: 特性校验
@@ -46,33 +58,28 @@ export class FuncWork {
       }
       this.methodMap.set(name, method);
     });
-    this.terminate();
-    const code = this.genCodeString();
-    this.scriptUrl = URL.createObjectURL(new Blob([code]));
-    this.worker = new Worker(this.scriptUrl, this.options);
-
+    this.replaceWorker();
     return this;
   }
 
-  list(): String {
-    const result: string[] = [];
-    this.methodMap.forEach((_, k) => {
-      result.push(k);
-    });
-    return result.join(' | ');
-  }
-
-  remove(name: string): boolean {
+  remove(name: string | Function): boolean {
+    if (isFunction(name)) {
+      name = Function.prototype.toString.call(name);
+    }
     if (!this.methodMap.has(name)) return false;
     try {
       this.methodMap.delete(name);
     } catch (e) {
       return false;
     }
+    this.replaceWorker();
     return true;
   }
 
-  invoke(name: string, params: any): never | Promise<any> {
+  invoke(name: string | Function, params?: any[]): never | Promise<any> {
+    if (isFunction(name)) {
+      name = Function.prototype.toString.call(name);
+    }
     if (!this.methodMap.has(name)) {
       throw new Error(`${name} is not defined in Funcwork.`);
     }
@@ -89,13 +96,22 @@ export class FuncWork {
       });
       this.worker.postMessage(JSON.stringify({
         method: name,
-        params
+        params: Array.isArray(params) ? params: [params]
       }))
     });
   }
 
+  list(): String {
+    const result: string[] = [];
+    this.methodMap.forEach((_, k) => {
+      result.push(k);
+    });
+    return result.join(' | ');
+  }
+
   clear() {
     this.methodMap.clear();
+    this.replaceWorker();
   }
 
   terminate() {

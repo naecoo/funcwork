@@ -14,9 +14,27 @@ export class FuncWork {
 
   /**
    * register function
-   * @param methods
+   * @param methods The functions to be registered
    */
   add(...methods: Function[]): this;
+
+  /**
+   * remove function that was registered before
+   * @param name The function or the name of the function to be removed
+   */
+  remove(name: string | Function): boolean;
+
+  /** 
+   * invoke function that was registered before
+   * @param name The function or the name of the function to be called
+   * @param params The parameters that the function accepts, it must be of array type, whether single argument or multiple arguments
+   */
+  invoke(name: string | Function, params?: any): never | Promise<any>
+
+  /**
+   * clear all functions
+   */
+  clear(): void;
 
   /**
    * list all registered functions
@@ -24,29 +42,12 @@ export class FuncWork {
   list(): string;
 
   /**
-   * remove function that was registered before
-   * @param name function name
-   */
-  remove(name: string): boolean;
-
-  /** 
-   * invoke function that was registered before
-   * @param name
-   */
-  invoke(name: string, params: any): never | Promise<any>
-
-  /**
-   * clear all method
-   */
-  clear(): void;
-
-  /**
-   * terminate the Web Worker instance
+   * terminate the Web Worker instance but reserve functions
    */
   terminate(): void;
 
   /**
-   * destroy Funcwork instance
+   * destroy Funcwork instance and clear all data
    */
   destroy(): void;
 }
