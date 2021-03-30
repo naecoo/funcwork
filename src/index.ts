@@ -1,44 +1,46 @@
-import { isFunction, isArrowFunction } from './utils';
+import { isFunction, uuid } from './utils';
 
 
-type Message = 'init' | 'add' | 'remove' | 'clear'; 
+type MessageType = 'add' | 'remove' | 'clear' | 'invoke'; 
+interface Message {
+  type: MessageType;
+  name?: string;
+  code?: string;
+  id?: string;
+  params?: any;
+}
 export class FuncWork {
-  private options?: WorkerOptions;
-  // @ts-ignore
   private worker: Worker;
   private scriptUrl: string;
-  private methodMap: Map<string, Function>;
+  private methodSet: Set<string>;
   
-  private genCodeString(): string {
-    let code = '';
-    for (const [name, method] of this.methodMap.entries()) {
-      let str = '';
-      const funcCode = Function.prototype.toString.call(method);
-      if (isArrowFunction(method)) {
-        str = `;var ${name} = ${funcCode}`;
-      } else {
-        str = `;${funcCode}`;
-      }
-      code = `${code}${str}`;
-    }
-    return `${code};self.onmessage=function(e){var data=JSON.parse(e.data);var method=data.method;var params=data.params;try{var result=self[method].apply(null,params)||null;if(result instanceof Promise){Promise.resolve(result).then(res=>{self.postMessage(JSON.stringify(res))}).catch(e=>{throw new Error(e)})}else{self.postMessage(JSON.stringify(result))}}catch(e){throw new Error(e)}};`;
+  private genCodeString(method: Function): string {
+    const funcCode = Function.prototype.toString.call(method);
+    return `(${funcCode})`;
   }
 
-  private replaceWorker() {
-    // todo: 初始化生成url和worker，维护一套消息机制，没必要重复生成
-    this.terminate();
-    const code = this.genCodeString();
-    this.scriptUrl = URL.createObjectURL(new Blob([code]));
-    this.worker = new Worker(this.scriptUrl, this.options);
+  private updateWorker(message: Message) {
+    this.worker.postMessage(JSON.stringify(message));
   }
-
-  private update(type: Message) {}
 
   constructor(options?: WorkerOptions) {
-    // todo: 特性校验
-    this.options = options;
-    this.methodMap = new Map();
-    this.scriptUrl = '';
+    if (!window) {
+      throw new Error('Detected not in browser environment.');
+    }
+    if (!window.Worker) {
+      throw new Error('Web Worker is not supported in the environment.');
+    }
+    if (!window.URL && !URL.createObjectURL) {
+      throw new Error('URL API is not supported in the environment.');
+    }
+    if (!window.Promise) {
+      throw new Error('Promise Feature is not supported in the environment.');
+    }
+
+    this.methodSet = new Set();
+    const code = `self.methodsMap={};self.onmessage=function(e){function invoke(name,params,id){try{if(!self.methodsMap[name]){throw new Error('function '+name+' is not registered.')}var result=self.methodsMap[name].apply(null,params)||null;if(result instanceof Promise){Promise.resolve(result).then(function(res){self.postMessage(JSON.stringify({data:res,name:name,id:id}))}).catch(function(e){throw new Error(e)})}else{self.postMessage(JSON.stringify({data:result,name:name,id:id}))}}catch(e){throw new Error(e)}}var data=JSON.parse(e.data);var type=data.type;var name=data.name;switch(type){case'add':eval('self.methodsMap["'+name+'"]='+data.code);break;case'remove':if(self.methodsMap[name]){self.methodsMap[name]=undefined}break;case'clear':self.methodsMap={};break;case'invoke':var params=data.params;var id=data.id;invoke(name,params,id);break;default:break}};`;
+    this.scriptUrl = URL.createObjectURL(new Blob([code]));
+    this.worker = new Worker(this.scriptUrl, options);
   }
 
   add(...methods: Function[]): this {
@@ -49,44 +51,66 @@ export class FuncWork {
       }
       const name = method.name;
       if (!name || name.trim() === '') {
-        console.warn(`Registration failed, methods[${index}] is anonymous function.`);
+        console.warn(`Registration failed, methods[${index}] is a anonymous function.`);
         return;
       }
-      if (this.methodMap.has(name)) {
+      if (this.methodSet.has(name)) {
         console.warn(`Registration failed, methods[${index}] is already registered.`);
         return;
       }
-      this.methodMap.set(name, method);
+      this.methodSet.add(name);
+      this.updateWorker({
+        name,
+        type: 'add',
+        code: this.genCodeString(method)
+      });
     });
-    this.replaceWorker();
     return this;
   }
 
-  remove(name: string | Function): boolean {
+  remove(name: string | Function) {
     if (isFunction(name)) {
-      name = Function.prototype.toString.call(name);
+      name = name.name;
     }
-    if (!this.methodMap.has(name)) return false;
-    try {
-      this.methodMap.delete(name);
-    } catch (e) {
-      return false;
-    }
-    this.replaceWorker();
-    return true;
+    if (!this.methodSet.has(name)) return;
+    this.methodSet.delete(name);
+    this.updateWorker({
+      type: 'remove',
+      name
+    });
+  }
+
+  clear() {
+    this.methodSet.clear();
+    this.updateWorker({
+      type: 'clear'
+    });
+  }
+
+  list(): String {
+    const result: string[] = [];
+    this.methodSet.forEach((k) => {
+      result.push(k);
+    });
+    return result.join(' | ');
   }
 
   invoke(name: string | Function, params?: any[]): never | Promise<any> {
     if (isFunction(name)) {
-      name = Function.prototype.toString.call(name);
+      name = name.name;
     }
-    if (!this.methodMap.has(name)) {
+    if (!this.methodSet.has(name)) {
       throw new Error(`${name} is not defined in Funcwork.`);
     }
+
+    const uid = uuid();
     return new Promise((resolve, reject) => {
       this.worker.addEventListener('message', (e) => {
         try {
-          resolve(JSON.parse(e.data))
+          const { id, data } = JSON.parse(e.data);
+          if (id === uid) {
+            resolve(data)
+          }
         } catch (e) {
           reject(e);
         }
@@ -94,24 +118,13 @@ export class FuncWork {
       this.worker.addEventListener('error', (e) => {
         reject(e);
       });
-      this.worker.postMessage(JSON.stringify({
-        method: name,
-        params: Array.isArray(params) ? params: [params]
-      }))
+      this.updateWorker({
+        type: 'invoke',
+        name: (name as string),
+        params: Array.isArray(params) ? params : [params],
+        id: uid
+      });
     });
-  }
-
-  list(): String {
-    const result: string[] = [];
-    this.methodMap.forEach((_, k) => {
-      result.push(k);
-    });
-    return result.join(' | ');
-  }
-
-  clear() {
-    this.methodMap.clear();
-    this.replaceWorker();
   }
 
   terminate() {

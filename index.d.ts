@@ -22,7 +22,7 @@ export class FuncWork {
    * remove function that was registered before
    * @param name The function or the name of the function to be removed
    */
-  remove(name: string | Function): boolean;
+  remove(name: string | Function): void;
 
   /** 
    * invoke function that was registered before
