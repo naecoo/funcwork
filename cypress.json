@@ -1,0 +1,7 @@
+{
+  "headless": true,
+  "exit": true,
+  "parallel": true,
+  "chromeWebSecurity": false,
+  "browser": "chrome"
+}
