@@ -42,11 +42,6 @@ export class FuncWork {
   list(): string;
 
   /**
-   * terminate the Web Worker instance but reserve functions
-   */
-  terminate(): void;
-
-  /**
    * destroy Funcwork instance and clear all data
    */
   destroy(): void;

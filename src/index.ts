@@ -23,6 +23,14 @@ export class FuncWork {
     this.worker.postMessage(JSON.stringify(message));
   }
 
+  private terminate() {
+    URL.revokeObjectURL(this.scriptUrl);
+    this.scriptUrl = '';
+    if (this.worker) {
+      this.worker.terminate();
+    }
+  }
+
   constructor(options?: WorkerOptions) {
     if (!window) {
       throw new Error('Detected not in browser environment.');
@@ -125,14 +133,6 @@ export class FuncWork {
         id: uid
       });
     });
-  }
-
-  terminate() {
-    URL.revokeObjectURL(this.scriptUrl);
-    this.scriptUrl = '';
-    if (this.worker) {
-      this.worker.terminate();
-    }
   }
 
   destroy() {
