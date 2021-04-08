@@ -95,15 +95,31 @@ fw.destroy()
 
 ### constructor
 
-### add
+Create `Funcwork` instance
+
+### add()
+
+Add function to `Web Worker`
 
 ### invoke
 
+Call the registered function
+
 ### remove
+
+Remove a registered function
 
 ### clear
 
+Clear all registered functions
+
 ### list
 
+List all registered functions
+
 ### destroy
+
+Clear all function and terminate Web Worker instance.
+
+
 
