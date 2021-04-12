@@ -93,33 +93,196 @@ fw.destroy()
 
 ## API
 
-### constructor
+### Class
+#### Funcwork
 
-Create `Funcwork` instance
+- Arguments
 
-### add()
+  - options: `Web Worker` options, get detail [here](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API)
 
-Add function to `Web Worker`
+- Returns
 
-### invoke
+  `Funcwork` instance
 
-Call the registered function
+- Usage
 
-### remove
+  Create `Funcwork` instance
 
-Remove a registered function
+  ```js
+  import { FuncWork } from 'funcwork';
+  
+  const fw = new FuncWork();
+  // or 
+  const fw = new FuncWork({
+      credentials: '',
+      name: '',
+      type: ''
+  });
+  ```
 
-### clear
+  
 
-Clear all registered functions
+### Instance Methods
+#### add
 
-### list
+- Arguments
 
-List all registered functions
+  - { Function }	fn
 
-### destroy
+- Returns
 
-Clear all function and terminate Web Worker instance.
+  this
+
+- Usage
+
+  Add function to `Web Worker`
+
+  ```javascript
+  import { FuncWork } from 'funcwork';
+  
+  const fw = new FuncWork();
+  
+  function add (a, b) {
+      return a + b;
+  }
+  fw.add(add);
+  fw.add(function sub(a, b) { return a - b});
+  
+  
+  // multiple
+  const f3 = () => { 
+  	// ... 
+  };
+  fw.add(function f1() {}, function f2, f3);
+  
+  // Chain calls
+  fw.add(function f4() {})
+     .add(function f5() {});
+  ```
+
+#### invoke
+
+- Arguments
+
+  - { string | Function }	name
+  - { Array } params
+
+- Returns
+
+  - Promise<data>	`data` is the result returned after the function is executed
+
+- Usage
+
+  Call the registered function
+
+  ```javascript
+  import { FuncWork } from 'funcwork';
+  
+  const fw = new FuncWork();
+  
+  function add (a, b) {
+      return a + b;
+  }
+  fw.add(add);
+  
+  fw.inoke(add, [1, 2]).then(data => {
+      console.log(data); // 3
+  })
+  fw.invoke('add', [1, 3]).then(data => {
+      console.log(data); // 4
+  })
+  ```
+
+  
+
+#### remove
+
+- Arguments
+
+  - { string | Function }	name
+
+- Returns
+
+- Usage
+
+  Remove a registered function
+
+  ```javascript
+  import { FuncWork } from 'funcwork';
+  
+  const fw = new FuncWork();
+  function add (a, b) { return a + b; }
+  fw.add(add);
+  
+  fw.remove('add');
+  // or
+  fw.remove(add)
+  
+  fw.invoke(add) // throw new Error('add is not defined in Funcwork.')
+  ```
+
+#### clear
+
+- Arguments
+
+- Returns
+
+- Usage
+
+  Clear all registered functions
+
+  ```javascript
+  import { FuncWork } from 'funcwork';
+  
+  const fw = new FuncWork();
+  function add (a, b) { return a + b; }
+  fw.add(add);
+  
+  fw.clear();
+  fw.invoke(add) // throw new Error('add is not defined in Funcwork.')
+  ```
+
+#### list
+
+- Arguments
+
+- Returns
+
+- Usage
+
+  List all registered functions
+
+  ```javascript
+  import { FuncWork } from 'funcwork';
+  
+  const fw = new FuncWork();
+  
+  function add (a, b) { return a + b; }
+  function sub(a, b) { return a - b; }
+  fw.add(add, sub);
+  fw.list(); // "add | sub"
+  ```
+
+#### destroy
+
+- Arguments
+
+- Returns
+
+- Usage
+
+  Clear all function and terminate Web Worker instance.
+
+  ```javascript
+  import { FuncWork } from 'funcwork';
+  
+  const fw = new FuncWork();
+  // do something...
+  
+  fw.destroy();
+  ```
+
+  
 
 
 
