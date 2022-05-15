@@ -1,7 +1,7 @@
 # funcwork
 [🍵](https://emojipedia.org/teacup-without-handle/) Run pure function in Web Worker easily. Allows add functions to Web Worker dynamically, there are no preset `.js` files.
 
-
+[online demo](https://naecoo.github.io/funcwork/)
 
 ## Why
 
