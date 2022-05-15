@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Funcwork Demo</title>
+  <style>
+    html,
+    body {
+      margin: 0;
+    }
+
+    body {
+      width: 100vw;
+      height: 100vh;
+    }
+
+    .ball {
+      position: absolute;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background-color: darkorange;
+      z-index: 2;
+    }
+
+    .text {
+      position: absolute;
+      top: 100px;
+      left: 10px;
+      font-size: 24px;
+      font-style: italic;
+      user-select: none;
+      opacity: 0.6;
+      z-index: 1;
+    }
+
+    pre {
+      position: absolute;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="ball"></div>
+  <p class="text"></p>
+  <pre>
+    function heavyTask(n) {
+      while (n > 0) {
+        n--;
+      }
+      return 'finish';
+    }
+    fw.invoke('heavyTask', [Number.MAX_SAFE_INTEGER])
+  </pre>
+</body>
+
+<script defer type="module">
+  let width = document.documentElement.clientWidth - 50;
+  let height = document.documentElement.clientHeight - 50;
+  window.onresize = () => {
+    width = document.documentElement.clientWidth - 50;
+    height = document.documentElement.clientHeight - 50;
+  };
+
+  const getRandomStep = (step) => {
+    const value = 5 + Math.floor(Math.random() * 8);
+    return step <= 0 ? value : -value;
+  }
+  let x = 0;
+  let y = 0;
+  let stepX = getRandomStep(0);
+  let stepY = getRandomStep(0);
+
+  const ball = document.querySelector('.ball');
+  const roll = (time) => {
+    x += stepX;
+    y += stepY;
+
+    if (x < 0) {
+      x = 0;
+      stepX = getRandomStep(stepX);
+    }
+    if (x > width) {
+      x = width;
+      stepX = getRandomStep(stepX);
+    }
+    if (y < 0) {
+      y = 0;
+      stepY = getRandomStep(stepY);
+    }
+    if (y > height) {
+      y = height;
+      stepY = getRandomStep(stepY);
+    }
+
+    ball.style.left = x + 'px';
+    ball.style.top = y + 'px';
+    requestAnimationFrame(roll);
+  };
+  requestAnimationFrame(roll);
+</script>
+<script defer type="module">
+  import { FuncWork } from './dist/index.esm.js'
+  const fw = new FuncWork();
+
+  function heavyTask(n) {
+    while (n > 0) {
+      n--;
+    }
+    return 'finish';
+  }
+  fw.add(heavyTask);
+
+  const text = document.querySelector('.text');
+  const date = Date.now();
+  const work = () => {
+    text.innerText = `worker task running: ${Date.now() - date} ms`;
+    token = requestAnimationFrame(work);
+  };
+  let token = requestAnimationFrame(work);
+  fw.invoke('heavyTask', [Number.MAX_SAFE_INTEGER]).then(res => {
+    text.innerText = `worker task done: ${Date.now() - date} ms`;
+    window.cancelAnimationFrame(token);
+  });
+</script>
+
+</html>

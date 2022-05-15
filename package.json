@@ -6,9 +6,7 @@
   "module": "dist/funcwork.esm.js",
   "types": "index.d.ts",
   "scripts": {
-    "cypress": "cypress run",
-    "build": "node ./build.js",
-    "prepublish": "npm run build"
+    "build": "node ./build.js"
   },
   "keywords": [
     "web worker",
@@ -32,7 +30,6 @@
   },
   "homepage": "https://github.com/naecoo/funcwork#readme",
   "devDependencies": {
-    "cypress": "^6.8.0",
     "esbuild": "^0.9.6",
     "typescript": "^4.2.3"
   }

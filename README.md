@@ -55,6 +55,7 @@ import { FuncWork } from 'funcwork';
 
 const fw = new FuncWork();
 const add = (a, b) => a + b;
+fw.add(add);
 fw.invoke(add, [1, 1]).then(result => {
   console.log(result); // 2
 })
@@ -86,7 +87,7 @@ const fw = new FuncWork();
 // ...
 
 // Destroy Funcwork instance, it will clear all function and terminate Web Worker instance.
-fw.destroy()
+fw.destroy();
 ```
 
 
