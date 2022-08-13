@@ -2,8 +2,8 @@
   "name": "funcwork",
   "version": "2.1.0",
   "description": "Run pure function in web worker",
-  "main": "dist/funcwork.js",
-  "module": "dist/funcwork.esm.js",
+  "main": "dist/index.js",
+  "module": "dist/index.esm.js",
   "types": "index.d.ts",
   "scripts": {
     "build": "node ./build.js"
