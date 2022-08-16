@@ -11,7 +11,7 @@
   "keywords": [
     "web worker",
     "javascript",
-    "function"
+    "shared worker"
   ],
   "files": [
     "dist",
