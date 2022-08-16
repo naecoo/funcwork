@@ -10,8 +10,8 @@
   },
   "keywords": [
     "web worker",
-    "javascript",
-    "shared worker"
+    "shared worker",
+    "javascript"
   ],
   "files": [
     "dist",
