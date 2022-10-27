@@ -114,8 +114,6 @@ export class FuncWork {
 
     return new Promise((resolve, reject) => {
       const onResolve = (ev: MessageEvent<string>) => {
-        this.worker.removeEventListener('message', onResolve);
-        this.worker.removeEventListener('error', onReject);
         try {
           const { id, data } = JSON.parse(ev.data);
           if (id === uid) {
@@ -124,6 +122,8 @@ export class FuncWork {
         } catch (e) {
           reject(e);
         }
+        this.worker.removeEventListener('message', onResolve);
+        this.worker.removeEventListener('error', onReject);
       };
 
       const onReject = (err: ErrorEvent) => {
