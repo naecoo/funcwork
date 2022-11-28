@@ -22,72 +22,73 @@ npm i funcwork
 ### base
 
 ```js
-import { FuncWork } from 'funcwork';
+import { FuncWork } from 'funcwork'
 
-const fw = new FuncWork();
-const add = (a, b) => a + b;
-fw.add(add);
+const fw = new FuncWork()
+const add = (a, b) => a + b
+fw.add(add)
 
 // The `add` function will be running in Web Worker.
 // So you can do other things in main process.
-fw.invoke(add, [1, 1]).then(result => {
-  console.log(result); // 2
+fw.invoke(add, [1, 1]).then((result) => {
+  console.log(result) // 2
 })
 ```
 
 ### add multiple functions
 
 ```js
-import { FuncWork } from 'funcwork';
+import { FuncWork } from 'funcwork'
 
-const fw = new FuncWork();
-const add = (a, b) => a + b;
+const fw = new FuncWork()
+const add = (a, b) => a + b
 function sub(a, b) {
-  return a - b;
+  return a - b
 }
-fw.add(add, sub);
+fw.add(add, sub)
 ```
 
 ### invoke
 
 ```js
-import { FuncWork } from 'funcwork';
+import { FuncWork } from 'funcwork'
 
-const fw = new FuncWork();
-const add = (a, b) => a + b;
-fw.add(add);
-fw.invoke(add, [1, 1]).then(result => {
-  console.log(result); // 2
+const fw = new FuncWork()
+const add = (a, b) => a + b
+fw.add(add)
+fw.invoke(add, [1, 1]).then((result) => {
+  console.log(result) // 2
 })
 
 // or
-fw.invoke('add', [1, 2]).then(result => {
-  console.log(result); // 3
+fw.invoke('add', [1, 2]).then((result) => {
+  console.log(result) // 3
 })
 
 // recommended way
 (async () => {
- try {
-    const result = await fw.invoke('add', [1, 3]);
-    console.log(result); // 4
- } catch (err) {
+  try {
+    const result = await fw.invoke('add', [1, 3])
+    console.log(result) // 4
+  }
+  catch (err) {
     // It may be an exception thrown by the Web Worker, or the process of function execution
-    console.log(err);
- }
+    console.log(err)
+  }
 })()
 ```
 
 ### destroy
 
 ```js
-import { FuncWork } from 'funcwork';
+import { FuncWork } from 'funcwork'
 
-const fw = new FuncWork();
+const fw = new FuncWork()
 
 // ...
 
 // Destroy Funcwork instance, it will clear all function and terminate Web Worker instance.
-fw.destroy();
+fw.destroy()
 ```
 
 
@@ -110,15 +111,15 @@ fw.destroy();
   Create `Funcwork` instance
 
   ```js
-  import { FuncWork } from 'funcwork';
+  import { FuncWork } from 'funcwork'
   
-  const fw = new FuncWork();
-  // or 
+  const fw = new FuncWork()
+  // or
   const fw = new FuncWork({
-      credentials: '',
-      name: '',
-      type: ''
-  });
+    credentials: '',
+    name: '',
+    type: ''
+  })
   ```
 
   

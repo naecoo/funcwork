@@ -1,5 +1,5 @@
-const { resolve } = require('path');
-const { build, buildSync } = require('esbuild');
+const { resolve } = require('path')
+const { build, buildSync } = require('esbuild')
 
 const buildWorkerScript = () => {
   const result = buildSync({
@@ -10,24 +10,24 @@ const buildWorkerScript = () => {
     write: false,
     platform: 'browser',
     loader: {
-      '.ts': 'ts'
+      '.ts': 'ts',
     },
-    tsconfig: resolve(__dirname, './tsconfig.json')
-  });
-  return Buffer.from(result.outputFiles[0].contents).toString('utf-8');
-};
+    tsconfig: resolve(__dirname, './tsconfig.json'),
+  })
+  return Buffer.from(result.outputFiles[0].contents).toString('utf-8')
+}
 
 const run = () => {
-  const workerScriptContent = JSON.stringify(buildWorkerScript());
+  const workerScriptContent = JSON.stringify(buildWorkerScript())
 
   const formats = {
-    'cjs': 'index.js',
-    'esm': 'index.esm.js',
-    'iife': 'index.iife.js'
-  };
+    cjs: 'index.js',
+    esm: 'index.esm.js',
+    iife: 'index.iife.js',
+  }
 
-  Object.keys(formats).forEach(format => {
-    const fileName = formats[format];
+  Object.keys(formats).forEach((format) => {
+    const fileName = formats[format]
     build({
       format,
       globalName: 'funcWork',
@@ -38,19 +38,19 @@ const run = () => {
       sourcemap: true,
       platform: 'browser',
       loader: {
-        '.ts': 'ts'
+        '.ts': 'ts',
       },
       define: {
-        '__WORKER_SCRIPT__': workerScriptContent
+        __WORKER_SCRIPT__: workerScriptContent,
       },
-      tsconfig: resolve(__dirname, './tsconfig.json')
+      tsconfig: resolve(__dirname, './tsconfig.json'),
     }).then(() => {
-      console.info(`— ${fileName} was built`);
+      console.info(`— ${fileName} was built`)
     }).catch((e) => {
-      console.info(`🚨 ${fileName} build error:`);
-      console.error(e);
-    });
+      console.info(`🚨 ${fileName} build error:`)
+      console.error(e)
+    })
   })
-};
+}
 
-run();
+run()
