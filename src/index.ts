@@ -43,7 +43,7 @@ export class FuncWork {
       throw new Error('Promise Feature is not supported in the environment.')
 
     this.methodSet = new Set()
-    // @ts-expect-error
+    // @ts-expect-error __WORKER_SCRIPT__ is injected by build script
     this.scriptUrl = URL.createObjectURL(new Blob([__WORKER_SCRIPT__]))
     this.worker = new Worker(this.scriptUrl, options)
   }
@@ -111,6 +111,13 @@ export class FuncWork {
     const uid = uuid()
 
     return new Promise((resolve, reject) => {
+      const onReject = (err: ErrorEvent) => {
+        // eslint-disable-next-line @typescript-eslint/no-use-before-define
+        this.worker.removeEventListener('message', onResolve)
+        this.worker.removeEventListener('error', onReject)
+        reject(err)
+      }
+
       const onResolve = (ev: MessageEvent<string>) => {
         try {
           const { id, data } = JSON.parse(ev.data)
@@ -122,12 +129,6 @@ export class FuncWork {
         }
         this.worker.removeEventListener('message', onResolve)
         this.worker.removeEventListener('error', onReject)
-      }
-
-      const onReject = (err: ErrorEvent) => {
-        this.worker.removeEventListener('message', onResolve)
-        this.worker.removeEventListener('error', onReject)
-        reject(err)
       }
 
       // refactor: register event listener once

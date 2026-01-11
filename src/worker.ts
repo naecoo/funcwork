@@ -2,24 +2,19 @@ type fn = (...args: any[]) => any
 let methodsMap: Record<string, fn> = {}
 
 function invoke(name: string, params: unknown[], id: string) {
-  try {
-    if (!methodsMap[name])
-      throw new Error(`function ${name} is not registered.`)
+  if (!methodsMap[name])
+    throw new Error(`function ${name} is not registered.`)
 
-    const result = methodsMap[name].apply(null, params)
-    Promise.resolve(result).then((res) => {
-      self.postMessage(JSON.stringify({
-        data: res,
-        name,
-        id,
-      }))
-    }).catch((error) => {
-      throw error
-    })
-  }
-  catch (error) {
+  const result = methodsMap[name].apply(null, params)
+  Promise.resolve(result).then((res) => {
+    self.postMessage(JSON.stringify({
+      data: res,
+      name,
+      id,
+    }))
+  }).catch((error) => {
     throw error
-  }
+  })
 }
 
 self.onmessage = function (e) {
@@ -42,10 +37,11 @@ self.onmessage = function (e) {
       methodsMap = {}
       break
 
-    case 'invoke':
-      var params = data.params
-      var id = data.id
+    case 'invoke': {
+      const params = data.params
+      const id = data.id
       invoke(name, params, id)
       break
+    }
   }
 }
