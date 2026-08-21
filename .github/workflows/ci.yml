@@ -3,20 +3,23 @@ name: CI
 on:
   push:
     branches: [master]
+  pull_request:
 
 jobs:
-  test:
+  ci:
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '18'
       - uses: pnpm/action-setup@v4
         with:
           version: 9
-      - run: pnpm install
-      - run: pnpm run lint
-      - run: pnpm run typecheck
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
       - run: pnpm test
+      - run: pnpm build

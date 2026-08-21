@@ -1,151 +1,154 @@
 import { isFunction, uuid } from './utils'
 
-type MessageType = 'add' | 'remove' | 'clear' | 'invoke'
+// Worker script will be injected at build time
+declare const __WORKER_SCRIPT__: string
+
 interface Message {
-  type: MessageType
+  type: 'add' | 'remove' | 'clear' | 'invoke'
   name?: string
   code?: string
   id?: string
-  params?: any
+  params?: unknown[]
 }
-export class FuncWork {
-  private worker: Worker
-  private scriptUrl: string
-  private methodSet: Set<string>
 
-  private genCodeString(method: Function): string {
+interface WorkerResponse {
+  id: string
+  data: unknown
+  name: string
+}
+
+export class FuncWork {
+  #worker: Worker
+  #scriptUrl: string
+  #methods = new Set<string>()
+  #pending = new Map<string, { resolve: (value: unknown) => void, reject: (reason: Error) => void }>()
+
+  constructor(options?: WorkerOptions) {
+    if (typeof window === 'undefined') {
+      throw new TypeError('FuncWork only works in browser environment.')
+    }
+
+    if (!window.Worker) {
+      throw new Error('Web Worker is not supported in this environment.')
+    }
+
+    if (!window.URL || !URL.createObjectURL) {
+      throw new Error('URL API is not supported in this environment.')
+    }
+
+    if (!window.Promise) {
+      throw new Error('Promise is not supported in this environment.')
+    }
+
+    this.#scriptUrl = URL.createObjectURL(new Blob([__WORKER_SCRIPT__], { type: 'application/javascript' }))
+    this.#worker = new Worker(this.#scriptUrl, options)
+    this.#worker.onmessage = this.#handleMessage.bind(this)
+  }
+
+  #handleMessage(event: MessageEvent<string>): void {
+    try {
+      const response: WorkerResponse = JSON.parse(event.data)
+      const { id, data } = response
+      const pending = this.#pending.get(id)
+      if (pending) {
+        this.#pending.delete(id)
+        if (data && typeof data === 'object' && 'error' in data) {
+          pending.reject(new Error(String(data.error)))
+        }
+        else {
+          pending.resolve(data)
+        }
+      }
+    }
+    catch {
+      // Ignore invalid messages
+    }
+  }
+
+  #postMessage(message: Message): void {
+    this.#worker.postMessage(JSON.stringify(message))
+  }
+
+  #genCodeString(method: Function): string {
     const funcCode = Function.prototype.toString.call(method)
     return `(function(){return ${funcCode}})()`
   }
 
-  private updateWorker(message: Message) {
-    this.worker.postMessage(JSON.stringify(message))
-  }
-
-  private terminate() {
-    URL.revokeObjectURL(this.scriptUrl)
-    this.scriptUrl = ''
-    if (this.worker)
-      this.worker.terminate()
-  }
-
-  constructor(options?: WorkerOptions) {
-    if (!window)
-      throw new Error('Detected not in browser environment.')
-
-    if (!window.Worker)
-      throw new Error('Web Worker is not supported in the environment.')
-
-    if (!window.URL && !URL.createObjectURL)
-      throw new Error('URL API is not supported in the environment.')
-
-    if (!window.Promise)
-      throw new Error('Promise Feature is not supported in the environment.')
-
-    this.methodSet = new Set()
-    // @ts-expect-error __WORKER_SCRIPT__ is injected by build script
-    this.scriptUrl = URL.createObjectURL(new Blob([__WORKER_SCRIPT__]))
-    this.worker = new Worker(this.scriptUrl, options)
-  }
-
   add(...methods: Function[]): this {
-    methods.forEach((method, index) => {
+    for (let i = 0; i < methods.length; i++) {
+      const method = methods[i]
       if (!isFunction(method)) {
-        console.warn(`Registration failed, methods[${index}] is not a Function type.`)
-        return
+        console.warn(`Registration failed: methods[${i}] is not a Function.`)
+        continue
       }
+
       const name = method.name
       if (!name || name.trim() === '') {
-        console.warn(`Registration failed, methods[${index}] is a anonymous function.`)
-        return
+        console.warn(`Registration failed: methods[${i}] is an anonymous function.`)
+        continue
       }
-      if (this.methodSet.has(name)) {
-        console.warn(`Registration failed, methods[${index}] is already registered.`)
-        return
+
+      if (this.#methods.has(name)) {
+        console.warn(`Registration failed: methods[${i}] (${name}) is already registered.`)
+        continue
       }
-      this.methodSet.add(name)
-      this.updateWorker({
-        name,
+
+      this.#methods.add(name)
+      this.#postMessage({
         type: 'add',
-        code: this.genCodeString(method),
+        name,
+        code: this.#genCodeString(method),
       })
-    })
+    }
     return this
   }
 
-  remove(name: string | Function) {
-    if (isFunction(name))
-      name = name.name
-
-    if (!this.methodSet.has(name))
+  remove(name: string | Function): void {
+    const fnName = isFunction(name) ? name.name : name
+    if (!this.#methods.has(fnName))
       return
-    this.methodSet.delete(name)
-    this.updateWorker({
-      type: 'remove',
-      name,
-    })
+
+    this.#methods.delete(fnName)
+    this.#postMessage({ type: 'remove', name: fnName })
   }
 
-  clear() {
-    this.methodSet.clear()
-    this.updateWorker({
-      type: 'clear',
-    })
+  clear(): void {
+    this.#methods.clear()
+    this.#postMessage({ type: 'clear' })
   }
 
-  list(): String {
-    const result: string[] = []
-    this.methodSet.forEach((k) => {
-      result.push(k)
-    })
-    return result.join(' | ')
+  list(): string {
+    return [...this.#methods].join(' | ')
   }
 
-  invoke(name: string | Function, params?: any[]): Promise<any> | never {
-    if (isFunction(name))
-      name = name.name
+  invoke(name: string | Function, params?: unknown[]): Promise<unknown> {
+    const fnName = isFunction(name) ? name.name : name
+    if (!this.#methods.has(fnName)) {
+      throw new Error(`${fnName} is not registered in FuncWork.`)
+    }
 
-    if (!this.methodSet.has(name))
-      throw new Error(`${name} is not defined in Funcwork.`)
-
-    const uid = uuid()
+    const id = uuid()
+    const args = Array.isArray(params) ? params : params ? [params] : []
 
     return new Promise((resolve, reject) => {
-      const onReject = (err: ErrorEvent) => {
-        // eslint-disable-next-line @typescript-eslint/no-use-before-define
-        this.worker.removeEventListener('message', onResolve)
-        this.worker.removeEventListener('error', onReject)
-        reject(err)
-      }
+      this.#pending.set(id, { resolve, reject })
+      this.#postMessage({ type: 'invoke', name: fnName, params: args, id })
 
-      const onResolve = (ev: MessageEvent<string>) => {
-        try {
-          const { id, data } = JSON.parse(ev.data)
-          if (id === uid)
-            resolve(data)
+      // Timeout fallback
+      setTimeout(() => {
+        if (this.#pending.has(id)) {
+          this.#pending.delete(id)
+          reject(new Error(`Timeout: ${fnName} did not respond in time.`))
         }
-        catch (e) {
-          reject(e)
-        }
-        this.worker.removeEventListener('message', onResolve)
-        this.worker.removeEventListener('error', onReject)
-      }
-
-      // refactor: register event listener once
-      this.worker.addEventListener('message', onResolve)
-      this.worker.addEventListener('error', onReject)
-
-      this.updateWorker({
-        type: 'invoke',
-        name: (name as string),
-        params: Array.isArray(params) ? params : [params],
-        id: uid,
-      })
+      }, 30000)
     })
   }
 
-  destroy() {
-    this.terminate()
-    this.clear()
+  destroy(): void {
+    this.#worker.terminate()
+    URL.revokeObjectURL(this.#scriptUrl)
+    this.#methods.clear()
+    this.#pending.forEach(({ reject }) => reject(new Error('FuncWork instance destroyed.')))
+    this.#pending.clear()
   }
 }

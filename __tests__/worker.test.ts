@@ -1,21 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { handleMessage } from '../src/worker'
 
-// Import after mocking
-import '../src/worker'
-
-// Mock self and eval before importing worker
 const mockPostMessage = vi.fn()
 const mockEval = vi.fn()
-vi.stubGlobal('window', {
-  self: {
-    postMessage: mockPostMessage,
-    onmessage: null, // Will be assigned by worker.ts
-  },
-})
-vi.stubGlobal('eval', mockEval)
-;(global as any).self.postMessage = mockPostMessage
 
-describe('Worker', () => {
+vi.stubGlobal('postMessage', mockPostMessage)
+vi.stubGlobal('eval', mockEval)
+
+describe('worker', () => {
   beforeEach(() => {
     mockPostMessage.mockClear()
     mockEval.mockClear()
@@ -25,96 +17,95 @@ describe('Worker', () => {
     vi.restoreAllMocks()
   })
 
-  describe('onmessage add', () => {
+  describe('handleMessage add', () => {
     it('should add function to methodsMap via eval', () => {
       const mockFunction = () => 'test'
       mockEval.mockReturnValue(mockFunction)
 
-      ;(self as any).onmessage!({
+      handleMessage({
         data: JSON.stringify({
           type: 'add',
           name: 'testFunc',
           code: 'mock code',
         }),
-      })
+      } as MessageEvent)
 
-      expect(mockEval).toHaveBeenCalledWith('mock code')
+      expect(mockEval).toHaveBeenCalledWith('(function(){return mock code})()')
     })
   })
 
-  describe('onmessage remove', () => {
+  describe('handleMessage remove', () => {
     it('should remove function from methodsMap', () => {
       mockEval.mockReturnValue(() => 'test')
 
-      ;(self as any).onmessage!({
+      handleMessage({
         data: JSON.stringify({
           type: 'add',
           name: 'testFunc',
           code: 'mock code',
         }),
-      })
+      } as MessageEvent)
 
       mockEval.mockClear()
 
-      ;(self as any).onmessage!({
+      handleMessage({
         data: JSON.stringify({
           type: 'remove',
           name: 'testFunc',
         }),
-      })
+      } as MessageEvent)
 
       expect(mockEval).not.toHaveBeenCalled()
     })
   })
 
-  describe('onmessage clear', () => {
+  describe('handleMessage clear', () => {
     it('should reset methodsMap', () => {
       mockEval.mockReturnValue(() => 'test')
 
-      ;(self as any).onmessage!({
+      handleMessage({
         data: JSON.stringify({
           type: 'add',
           name: 'testFunc',
           code: 'mock code',
         }),
-      })
+      } as MessageEvent)
 
       mockEval.mockClear()
 
-      ;(self as any).onmessage!({
+      handleMessage({
         data: JSON.stringify({
           type: 'clear',
         }),
-      })
+      } as MessageEvent)
 
       expect(mockEval).not.toHaveBeenCalled()
     })
   })
 
-  describe('onmessage invoke', () => {
+  describe('handleMessage invoke', () => {
     it('should call invoke function and post sync result', async () => {
       mockEval.mockReturnValue(() => 'sync result')
 
-      ;(self as any).onmessage!({
+      handleMessage({
         data: JSON.stringify({
           type: 'add',
           name: 'testFunc',
           code: 'mock code',
         }),
-      })
+      } as MessageEvent)
 
       mockEval.mockClear()
 
-      ;(self as any).onmessage!({
+      handleMessage({
         data: JSON.stringify({
           type: 'invoke',
           name: 'testFunc',
           params: ['arg1'],
           id: 'test-id',
         }),
-      })
+      } as MessageEvent)
 
-      // Since invoke uses Promise.resolve, wait for async
       await new Promise(resolve => setTimeout(resolve, 0))
 
       expect(mockPostMessage).toHaveBeenCalledWith(
@@ -128,28 +119,27 @@ describe('Worker', () => {
 
     it('should handle async function results', async () => {
       const asyncFunc = async () => {
-        return new Promise(resolve => setTimeout(() => resolve('async result'), 10))
+        return new Promise(resolve => setTimeout(resolve, 10, 'async result'))
       }
       mockEval.mockReturnValue(asyncFunc)
 
-      ;(self as any).onmessage!({
+      handleMessage({
         data: JSON.stringify({
           type: 'add',
           name: 'asyncFunc',
           code: 'mock code',
         }),
-      })
+      } as MessageEvent)
 
-      ;(self as any).onmessage!({
+      handleMessage({
         data: JSON.stringify({
           type: 'invoke',
           name: 'asyncFunc',
           params: [],
           id: 'async-id',
         }),
-      })
+      } as MessageEvent)
 
-      // Wait for async resolution
       await new Promise(resolve => setTimeout(resolve, 20))
 
       expect(mockPostMessage).toHaveBeenCalledWith(
@@ -161,17 +151,25 @@ describe('Worker', () => {
       )
     })
 
-    it('should throw error for unregistered function', () => {
-      expect(() => {
-        (self as any).onmessage!({
-          data: JSON.stringify({
-            type: 'invoke',
-            name: 'nonexistent',
-            params: [],
-            id: 'error-id',
-          }),
-        })
-      }).toThrow('function nonexistent is not registered.')
+    it('should post error for unregistered function', async () => {
+      handleMessage({
+        data: JSON.stringify({
+          type: 'invoke',
+          name: 'nonexistent',
+          params: [],
+          id: 'error-id',
+        }),
+      } as MessageEvent)
+
+      await new Promise(resolve => setTimeout(resolve, 0))
+
+      expect(mockPostMessage).toHaveBeenCalledWith(
+        JSON.stringify({
+          data: { error: 'Function nonexistent is not registered.' },
+          name: '',
+          id: 'error-id',
+        }),
+      )
     })
   })
 })

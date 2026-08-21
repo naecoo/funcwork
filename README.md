@@ -1,290 +1,118 @@
-# funcwork
-[🍵](https://emojipedia.org/teacup-without-handle/) Run pure function in Web Worker easily. Allows add functions to Web Worker dynamically, there are no preset `.js` files.
+# FuncWork
 
-[online demo](https://naecoo.github.io/funcwork/)
+[![npm version](https://img.shields.io/npm/v/funcwork.svg)](https://www.npmjs.com/package/funcwork)
+[![CI](https://github.com/naecoo/funcwork/actions/workflows/ci.yml/badge.svg)](https://github.com/naecoo/funcwork/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+[🍵](https://emojipedia.org/teacup-without-handle/) Run pure functions in Web Worker easily. Add functions to a Web Worker dynamically — no preset worker files, no build config.
+
+- 📖 **Docs**: https://naecoo.github.io/funcwork/
+- ⚡️ **Live Demo**: https://naecoo.github.io/funcwork/demo/
 
 ## Why
 
-This package help you use `Web Worker` in a human way.
-
-
+Web Workers are powerful but verbose: you need a separate file, bundler wiring, message-passing boilerplate, and request/response id matching. FuncWork removes all of it — pass a function, get a Promise.
 
 ## Install
 
-```console
+```bash
 npm i funcwork
 ```
 
-
-
 ## Usage
 
-### base
-
 ```js
 import { FuncWork } from 'funcwork'
 
 const fw = new FuncWork()
-const add = (a, b) => a + b
-fw.add(add)
 
-// The `add` function will be running in Web Worker.
-// So you can do other things in main process.
-fw.invoke(add, [1, 1]).then((result) => {
-  console.log(result) // 2
-})
-```
-
-### add multiple functions
-
-```js
-import { FuncWork } from 'funcwork'
-
-const fw = new FuncWork()
-const add = (a, b) => a + b
-function sub(a, b) {
-  return a - b
+function fib(n) {
+  return n <= 1 ? n : fib(n - 1) + fib(n - 2)
 }
+
+fw.add(fib)
+
+// Runs inside a Web Worker — the main thread stays free
+const result = await fw.invoke(fib, [30])
+console.log(result) // 832040
+```
+
+### Multiple functions & chaining
+
+```js
 fw.add(add, sub)
+   .add(function mul(a, b) { return a * b })
 ```
 
-### invoke
+### Invoke by name or reference
 
 ```js
-import { FuncWork } from 'funcwork'
-
-const fw = new FuncWork()
-const add = (a, b) => a + b
-fw.add(add)
-fw.invoke(add, [1, 1]).then((result) => {
-  console.log(result) // 2
-})
-
-// or
-fw.invoke('add', [1, 2]).then((result) => {
-  console.log(result) // 3
-})
-
-// recommended way
-(async () => {
-  try {
-    const result = await fw.invoke('add', [1, 3])
-    console.log(result) // 4
-  }
-  catch (err) {
-    // It may be an exception thrown by the Web Worker, or the process of function execution
-    console.log(err)
-  }
-})()
+await fw.invoke('add', [1, 2]) // 3
+await fw.invoke(add, [1, 2])   // 3
 ```
 
-### destroy
+### Async functions
+
+The resolved value of a returned Promise is awaited automatically:
 
 ```js
-import { FuncWork } from 'funcwork'
+async function fetchJson(url) {
+  const res = await fetch(url)
+  return res.json()
+}
 
-const fw = new FuncWork()
-
-// ...
-
-// Destroy Funcwork instance, it will clear all function and terminate Web Worker instance.
-fw.destroy()
+fw.add(fetchJson)
+const data = await fw.invoke(fetchJson, ['https://api.example.com/data'])
 ```
 
+### Error handling
 
+Errors thrown inside the Worker reject the invocation Promise:
 
-## API
+```js
+try {
+  await fw.invoke(riskyFn)
+} catch (err) {
+  console.error(err.message)
+}
+```
 
-### Class
-#### Funcwork
+### Lifecycle
 
-- Arguments
+```js
+fw.list()    // 'fib | add | sub'
+fw.remove(add)
+fw.clear()
+fw.destroy() // terminate the Worker and release resources
+```
 
-  - options: `Web Worker` options, get detail [here](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API)
+See the [API Reference](https://naecoo.github.io/funcwork/guide/api.html) for details.
 
-- Returns
+## Constraints
 
-  `Funcwork` instance
+Functions are serialized via `Function.prototype.toString()` and re-created inside the Worker, so they must be:
 
-- Usage
+- **Named** — declared as `function name()` (anonymous arrows cannot be registered)
+- **Pure** — no closure over outer variables
+- Connected only through arguments and return value
+- Dependent only on globals available inside a Worker (`fetch`, `self`, etc.)
 
-  Create `Funcwork` instance
+## Development
 
-  ```js
-  import { FuncWork } from 'funcwork'
-  
-  const fw = new FuncWork()
-  // or
-  const fw = new FuncWork({
-    credentials: '',
-    name: '',
-    type: ''
-  })
-  ```
+```bash
+pnpm install
 
-  
+pnpm test          # run tests (vitest)
+pnpm lint          # eslint
+pnpm typecheck     # tsc
+pnpm build         # build library (ESM / CJS / IIFE + types)
 
-### Instance Methods
-#### add
+pnpm docs:dev      # docs site with live demo
+pnpm docs:build    # build docs site
+```
 
-- Arguments
+Built with [Vite](https://vite.dev) (Rolldown-powered), tested with [Vitest](https://vitest.dev), documented with [VitePress](https://vitepress.dev). Docs deploy to GitHub Pages on every push to `master`.
 
-  - { Function }	fn
+## License
 
-- Returns
-
-  this
-
-- Usage
-
-  Add function to `Web Worker`
-
-  ```javascript
-  import { FuncWork } from 'funcwork';
-  
-  const fw = new FuncWork();
-  
-  function add (a, b) {
-      return a + b;
-  }
-  fw.add(add);
-  fw.add(function sub(a, b) { return a - b});
-  
-  
-  // multiple
-  const f3 = () => { 
-  	// ... 
-  };
-  fw.add(function f1() {}, function f2, f3);
-  
-  // Chain calls
-  fw.add(function f4() {})
-     .add(function f5() {});
-  ```
-
-#### invoke
-
-- Arguments
-
-  - { string | Function }	name
-  - { Array } params
-
-- Returns
-
-  - Promise<data>	`data` is the result returned after the function is executed
-
-- Usage
-
-  Call the registered function
-
-  ```javascript
-  import { FuncWork } from 'funcwork';
-  
-  const fw = new FuncWork();
-  
-  function add (a, b) {
-      return a + b;
-  }
-  fw.add(add);
-  
-  fw.inoke(add, [1, 2]).then(data => {
-      console.log(data); // 3
-  })
-  fw.invoke('add', [1, 3]).then(data => {
-      console.log(data); // 4
-  })
-  ```
-
-  
-
-#### remove
-
-- Arguments
-
-  - { string | Function }	name
-
-- Returns
-
-- Usage
-
-  Remove a registered function
-
-  ```javascript
-  import { FuncWork } from 'funcwork';
-  
-  const fw = new FuncWork();
-  function add (a, b) { return a + b; }
-  fw.add(add);
-  
-  fw.remove('add');
-  // or
-  fw.remove(add)
-  
-  fw.invoke(add) // throw new Error('add is not defined in Funcwork.')
-  ```
-
-#### clear
-
-- Arguments
-
-- Returns
-
-- Usage
-
-  Clear all registered functions
-
-  ```javascript
-  import { FuncWork } from 'funcwork';
-  
-  const fw = new FuncWork();
-  function add (a, b) { return a + b; }
-  fw.add(add);
-  
-  fw.clear();
-  fw.invoke(add) // throw new Error('add is not defined in Funcwork.')
-  ```
-
-#### list
-
-- Arguments
-
-- Returns
-
-- Usage
-
-  List all registered functions
-
-  ```javascript
-  import { FuncWork } from 'funcwork';
-  
-  const fw = new FuncWork();
-  
-  function add (a, b) { return a + b; }
-  function sub(a, b) { return a - b; }
-  fw.add(add, sub);
-  fw.list(); // "add | sub"
-  ```
-
-#### destroy
-
-- Arguments
-
-- Returns
-
-- Usage
-
-  Clear all function and terminate Web Worker instance.
-
-  ```javascript
-  import { FuncWork } from 'funcwork';
-  
-  const fw = new FuncWork();
-  // do something...
-  
-  fw.destroy();
-  ```
-
-  
-
-
-
+[MIT](LICENSE)

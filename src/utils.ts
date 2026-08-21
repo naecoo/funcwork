@@ -1,3 +1,3 @@
-export const isFunction = (val: any): val is Function => typeof val === 'function'
+export const isFunction = (val: unknown): val is Function => typeof val === 'function'
 
-export const uuid = () => `${Date.now()}${Math.random().toString().slice(10, 15)}`
+export const uuid = (): string => `${Date.now()}${Math.random().toString(36).slice(2, 7)}`

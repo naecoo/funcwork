@@ -1,3 +1,7 @@
 node_modules
-./bin
-todo.md
+dist
+docs/.vitepress/dist
+docs/.vitepress/cache
+coverage
+*.log
+.DS_Store

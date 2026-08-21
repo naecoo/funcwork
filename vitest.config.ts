@@ -1,9 +1,16 @@
 import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
+  define: {
+    __WORKER_SCRIPT__: '"mock worker script content"',
+  },
   test: {
-    environment: 'jsdom',
+    environment: 'happy-dom',
     globals: true,
-    dir: '__tests__',
+    include: ['__tests__/**/*.test.ts'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html'],
+    },
   },
 })
